@@ -11,15 +11,26 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 **Objective:** Minimize total cost = Capital Expenditure + 20 years of Operating Costs
 
 **Decision Variables:**
+
+*Generation:*
 - `Pg_E[i,t]` — Power from existing capacity of source `i` at hour `t` (MW)
 - `Pc_C[i,t]` — Power from new capacity of source `i` at hour `t` (MW)
-- `Xc_Cmax[i]` — New capacity to build for source `i` (MW)
+- `Xc_Cmax[i]` — New generation capacity to build for source `i` (MW)
+
+*Battery storage:*
+- `Xbat_MW` — New battery power capacity to build (MW)
+- `P_dis[t]` — Battery discharge power at hour `t` (MW)
+- `P_chg[t]` — Battery charge power at hour `t` (MW)
+- `E_stor[t]` — Battery state of charge at end of hour `t` (MWh)
 
 **Key Constraints:**
-- Supply-demand balance enforced at every hour (8,760 time steps)
+- Supply-demand balance enforced at every hour: generation + net battery discharge = load
 - Generation bounded by capacity × capacity factor
 - Annual CO₂ emissions ≤ 10% of 2022 baseline
-- Hourly ramp-rate limits for each technology
+- Hourly ramp-rate limits for each thermal technology
+- Battery discharge and charge each bounded by power capacity
+- Battery state of charge bounded by energy capacity (duration × power capacity)
+- Cyclic SOC energy balance: end-of-year state of charge equals start-of-year
 
 ## Technologies Modeled
 
@@ -33,6 +44,9 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 | Hydro | Renewable (existing only) |
 | Onshore Wind | Renewable |
 | Solar PV | Renewable |
+| **Battery Storage (4-hr)** | **Storage** |
+
+Battery parameters sourced from `ON_batteries_upld_2` (Generators_data.csv): overnight capital cost $69,568/MW, round-trip efficiency 84.6% (0.92 × 0.92), 4-hour duration, up to 20 GW buildout.
 
 ## Repository Structure
 
@@ -69,7 +83,7 @@ The script will print the optimal objective value (total system cost), solver st
 - **Planning horizon:** 2024–2050 (~20 years of operations)
 - **Emissions target:** ≤ 10% of Ontario's 2022 grid emissions (3.8 MT CO₂e)
 - **Hydro:** Existing capacity only; new hydro buildout excluded via prohibitive capital cost
-- **No storage:** Battery or pumped-hydro storage is not modeled
+- **Battery storage:** 4-hour lithium-ion battery with symmetric charge/discharge power capacity, cyclic state-of-charge balance, and 0.92 one-way efficiency on each side
 - **CCS efficiency:** 95% emissions reduction applied to NGCC+CCS units
 - **Full-year hourly resolution:** All 8,760 hours modeled to capture renewable variability and demand peaks
 
