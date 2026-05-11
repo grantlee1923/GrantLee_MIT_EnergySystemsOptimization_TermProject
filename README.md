@@ -46,8 +46,6 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 | Solar PV | Renewable |
 | **Battery Storage (4-hr)** | **Storage** |
 
-Battery parameters sourced from `ON_batteries_upld_2` (Generators_data.csv): overnight capital cost $69,568/MW, round-trip efficiency 84.6% (0.92 × 0.92), 4-hour duration, up to 20 GW buildout.
-
 ## Repository Structure
 
 ```
