@@ -88,7 +88,7 @@ This will load all inputs, solve the model, and write results to `Data/outputs/`
 
 ## Key Modeling Assumptions
 
-- **Planning horizon:** 2024–2050 (~20 years of operations)
+- **Planning horizon:** 2024–2050 (~20 years of operations using full 2050 load for all years)
 - **Emissions target:** ≤ 10% of Ontario's 2022 grid emissions (3.8 MT CO₂e)
 - **Hydro:** Existing capacity only; new hydro buildout excluded via prohibitive capital cost
 - **Battery storage:** 4-hour lithium-ion battery with symmetric charge/discharge power capacity, cyclic state-of-charge balance, and 0.92 one-way efficiency on each side
