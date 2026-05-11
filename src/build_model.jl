@@ -12,6 +12,7 @@ set_silent(model)
 @variable(model, P_dis[1:HOURS_PER_YEAR]  >= 0)  # battery discharge power (MW)
 @variable(model, P_chg[1:HOURS_PER_YEAR]  >= 0)  # battery charge power (MW)
 @variable(model, E_stor[1:HOURS_PER_YEAR] >= 0)  # battery state of charge (MWh)
+@variable(model, u_bat[1:HOURS_PER_YEAR], Bin)   # 1 = discharge mode, 0 = charge/idle mode
 @variable(model, NSE[1:HOURS_PER_YEAR]    >= 0)  # non-served energy (MW)
 
 # ── Generation constraints ─────────────────────────────────────────────────────
@@ -36,6 +37,11 @@ set_silent(model)
 # ── Battery storage constraints ────────────────────────────────────────────────
 @constraint(model, bat_dis_lim[t=1:HOURS_PER_YEAR],   P_dis[t] <= Xbat_MW)
 @constraint(model, bat_chg_lim[t=1:HOURS_PER_YEAR],   P_chg[t] <= Xbat_MW)
+
+# Mutual exclusivity: battery cannot charge and discharge in the same hour.
+# bat_max_mw is the big-M; combined with bat_dis_lim / bat_chg_lim this tightens to Xbat_MW.
+@constraint(model, bat_dis_mode[t=1:HOURS_PER_YEAR],  P_dis[t] <= bat_max_mw * u_bat[t])
+@constraint(model, bat_chg_mode[t=1:HOURS_PER_YEAR],  P_chg[t] <= bat_max_mw * (1 - u_bat[t]))
 
 @constraint(model, bat_soc_lim[t=1:HOURS_PER_YEAR],
     E_stor[t] <= bat_duration * Xbat_MW)

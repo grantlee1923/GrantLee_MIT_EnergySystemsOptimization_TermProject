@@ -1,6 +1,6 @@
 # Ontario Energy System Optimization — MIT Term Project
 
-A mixed-integer linear programming (MILP) model that determines the optimal electricity generation portfolio for Ontario through 2050 under an aggressive decarbonization target.
+A mixed-integer linear program (MILP) that determines the optimal electricity generation portfolio for Ontario through 2050 under an aggressive decarbonization target.
 
 ## Overview
 
@@ -22,6 +22,7 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 - `P_dis[t]` — Battery discharge power at hour `t` (MW)
 - `P_chg[t]` — Battery charge power at hour `t` (MW)
 - `E_stor[t]` — Battery state of charge at end of hour `t` (MWh)
+- `u_bat[t]` — Binary mode flag to enforce non-simultaneous charging and discharging
 
 *Reliability:*
 - `NSE[t]` — Non-served energy at hour `t` (MW); load that cannot be met by generation or storage, penalized at VOLL = $20,000/MWh in the objective
@@ -32,7 +33,8 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 - Annual CO₂ emissions ≤ 10% of 2022 baseline
 - Hourly ramp-rate limits for each thermal technology
 - Battery discharge and charge each bounded by power capacity
-- Battery state of charge bounded by energy capacity (duration × power capacity)
+- Battery cannot charge and discharge in the same hour (enforced via binary variable `u_bat[t]`)
+- Battery state of charge bounded by energy capacity (duration x power capacity)
 - Cyclic SOC energy balance: end-of-year state of charge equals start-of-year
 
 ## Technologies Modeled
