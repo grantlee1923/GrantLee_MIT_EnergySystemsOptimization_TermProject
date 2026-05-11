@@ -46,23 +46,15 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 | Solar PV | Renewable |
 | **Battery Storage (4-hr)** | **Storage** |
 
+Battery parameters sourced from `ON_batteries_upld_2` (Generators_data.csv): overnight capital cost $69,568/MW, round-trip efficiency 84.6% (0.92 × 0.92), 4-hour duration, up to 20 GW buildout.
+
 ## Repository Structure
 
 ```
-├── run.jl                        # Entry point — runs all three stages in order
-├── src/
-│   ├── load_inputs.jl            # Reads all CSVs and Excel files, defines parameters
-│   ├── build_model.jl            # Builds and solves the JuMP optimization model
-│   └── write_outputs.jl          # Writes results to Data/outputs/
+├── EnergySystemOpt_ProjectCode.jl   # Main optimization model
 └── Data/
-    ├── generator_params.csv       # Per-technology costs, capacity, ramp rates, emissions
-    ├── battery_params.csv         # Battery storage parameters
-    ├── model_config.csv           # Scalar settings: emissions target, planning horizon
-    ├── OntarioCFdata.xlsx         # Hourly capacity factors for all technologies (8,760 hrs)
-    ├── OntarioLoadData.xlsx       # Hourly electricity demand for Ontario (8,760 hrs)
-    └── outputs/                   # Generated on first run
-        ├── capacity_expansion.csv # Optimal new capacity per technology (MW / MWh)
-        └── dispatch.csv           # Hourly generation, battery dispatch, and SOC
+    ├── OntarioCFdata.xlsx            # Hourly capacity factors for all technologies (8,760 hrs)
+    └── OntarioLoadData.xlsx          # Hourly electricity demand for Ontario (8,760 hrs)
 ```
 
 ## Requirements
@@ -75,16 +67,16 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 Install Julia packages:
 ```julia
 using Pkg
-Pkg.add(["JuMP", "HiGHS", "XLSX", "DataFrames", "CSV"])
+Pkg.add(["JuMP", "HiGHS", "XLSX", "DataFrames"])
 ```
 
 ## Running the Model
 
 ```julia
-julia run.jl
+julia EnergySystemOpt_ProjectCode.jl
 ```
 
-This will load all inputs, solve the model, and write results to `Data/outputs/`. Progress is printed at each stage. To modify assumptions, edit the CSV files in `Data/` — no changes to the Julia scripts are needed for most scenarios.
+The script will print the optimal objective value (total system cost), solver status, and the optimal new capacity and dispatch for each technology.
 
 ## Key Modeling Assumptions
 
