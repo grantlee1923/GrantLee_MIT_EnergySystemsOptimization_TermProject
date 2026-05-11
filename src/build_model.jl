@@ -12,6 +12,7 @@ set_silent(model)
 @variable(model, P_dis[1:HOURS_PER_YEAR]  >= 0)  # battery discharge power (MW)
 @variable(model, P_chg[1:HOURS_PER_YEAR]  >= 0)  # battery charge power (MW)
 @variable(model, E_stor[1:HOURS_PER_YEAR] >= 0)  # battery state of charge (MWh)
+@variable(model, NSE[1:HOURS_PER_YEAR]    >= 0)  # non-served energy (MW)
 
 # ── Generation constraints ─────────────────────────────────────────────────────
 @constraint(model, cap_existing[i in energy_sources, t=1:HOURS_PER_YEAR],
@@ -55,7 +56,7 @@ set_silent(model)
 # ── Demand balance ─────────────────────────────────────────────────────────────
 @constraint(model, demand_balance[t=1:HOURS_PER_YEAR],
     sum(Pg_E[i,t] + Pc_C[i,t] for i in energy_sources) +
-    P_dis[t] - P_chg[t] == demand_df[t, :Load_MW])
+    P_dis[t] - P_chg[t] + NSE[t] == demand_df[t, :Load_MW])
 
 # ── Objective ──────────────────────────────────────────────────────────────────
 # Minimize capital cost + 20-year operating cost.
@@ -65,7 +66,8 @@ set_silent(model)
     sum(inv_cost[i] * Xc_Cmax[i] for i in energy_sources) +
     bat_capex_mw * Xbat_MW +
     opex_years * sum(marginal_cost[i] * (Pg_E[i,t] + Pc_C[i,t])
-                     for i in energy_sources, t in 1:HOURS_PER_YEAR))
+                     for i in energy_sources, t in 1:HOURS_PER_YEAR) +
+    opex_years * VOLL * sum(NSE[t] for t in 1:HOURS_PER_YEAR))
 
 # ── Solve ──────────────────────────────────────────────────────────────────────
 optimize!(model)

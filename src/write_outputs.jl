@@ -32,6 +32,7 @@ end
 dispatch_df[!, :Battery_discharge_MW] = [round(value(P_dis[t]),   digits=2) for t in 1:HOURS_PER_YEAR]
 dispatch_df[!, :Battery_charge_MW]    = [round(value(P_chg[t]),   digits=2) for t in 1:HOURS_PER_YEAR]
 dispatch_df[!, :Battery_SOC_MWh]      = [round(value(E_stor[t]),  digits=2) for t in 1:HOURS_PER_YEAR]
+dispatch_df[!, :NSE_MW]               = [round(value(NSE[t]),     digits=2) for t in 1:HOURS_PER_YEAR]
 dispatch_df[!, :Load_MW]              = demand_df[!, :Load_MW]
 
 CSV.write("Data/outputs/dispatch.csv", dispatch_df)

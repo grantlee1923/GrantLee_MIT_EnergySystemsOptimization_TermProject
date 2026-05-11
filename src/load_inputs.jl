@@ -3,6 +3,7 @@ using DataFrames, CSV, XLSX
 # ── Physical constants ─────────────────────────────────────────────────────────
 const HOURS_PER_YEAR = 8760
 const MT_TO_LBS      = 2_204_622_621.8488   # lbs per megatonne CO₂
+const VOLL           = 20_000.0             # value of lost load ($/MWh)
 
 # ── Model configuration ────────────────────────────────────────────────────────
 config_raw = CSV.read("Data/model_config.csv", DataFrame)

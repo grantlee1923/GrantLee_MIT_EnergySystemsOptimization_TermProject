@@ -23,8 +23,11 @@ This project solves a capacity expansion and unit commitment problem for Ontario
 - `P_chg[t]` — Battery charge power at hour `t` (MW)
 - `E_stor[t]` — Battery state of charge at end of hour `t` (MWh)
 
+*Reliability:*
+- `NSE[t]` — Non-served energy at hour `t` (MW); load that cannot be met by generation or storage, penalized at VOLL = $20,000/MWh in the objective
+
 **Key Constraints:**
-- Supply-demand balance enforced at every hour: generation + net battery discharge = load
+- Supply-demand balance enforced at every hour: generation + net battery discharge + NSE = load
 - Generation bounded by capacity × capacity factor
 - Annual CO₂ emissions ≤ 10% of 2022 baseline
 - Hourly ramp-rate limits for each thermal technology
@@ -62,7 +65,7 @@ This project solves a capacity expansion and unit commitment problem for Ontario
     ├── OntarioLoadData.xlsx       # Hourly electricity demand for Ontario (8,760 hrs)
     └── outputs/                   # Generated on first run
         ├── capacity_expansion.csv # Optimal new capacity per technology (MW / MWh)
-        └── dispatch.csv           # Hourly generation, battery dispatch, and SOC
+        └── dispatch.csv           # Hourly generation, battery dispatch, SOC, and NSE
 ```
 
 ## Requirements
@@ -93,6 +96,7 @@ This will load all inputs, solve the model, and write results to `Data/outputs/`
 - **Hydro:** Existing capacity only; new hydro buildout excluded via prohibitive capital cost
 - **Battery storage:** 4-hour lithium-ion battery with symmetric charge/discharge power capacity, cyclic state-of-charge balance, and 0.92 one-way efficiency on each side
 - **CCS efficiency:** 95% emissions reduction applied to NGCC+CCS units
+- **Value of lost load (VOLL):** $20,000/MWh — non-served energy is allowed in the power balance but penalized at this rate in the objective, ensuring load shedding only occurs when it is cheaper than the marginal cost of serving that energy
 - **Full-year hourly resolution:** All 8,760 hours modeled to capture renewable variability and demand peaks
 
 ## Course
