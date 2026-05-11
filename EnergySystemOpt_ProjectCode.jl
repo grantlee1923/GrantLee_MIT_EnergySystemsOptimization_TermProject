@@ -81,13 +81,30 @@ ramp_rate = Dict(
 # Source: https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/provincial-territorial-energy-profiles/provincial-territorial-energy-profiles-ontario.html
 emissions_cap_lbs = 0.1 * BASELINE_EMISSIONS_MT * MT_TO_LBS
 
+# ── Battery storage parameters (ON_batteries_upld_2, Generators_data.csv) ─────
+# Symmetric charge/discharge: same power capacity used for both directions
+const BAT_CAPEX_MW      = 69_568.26   # overnight capital cost ($/MW power capacity)
+const BAT_EFF_CHARGE    = 0.92        # one-way charging efficiency
+const BAT_EFF_DISCHARGE = 0.92        # one-way discharging efficiency
+const BAT_DURATION      = 4           # energy-to-power ratio (hours); 4-hr battery
+const BAT_MAX_MW        = 20_000.0    # maximum buildable power capacity (MW)
+
 # ── Model ──────────────────────────────────────────────────────────────────────
 model = Model(Gurobi.Optimizer)
 set_silent(model)
 
+# Generation variables
 @variable(model, Pg_E[ENERGY_SOURCES, 1:HOURS_PER_YEAR] >= 0)  # dispatch from existing capacity (MW)
 @variable(model, Pc_C[ENERGY_SOURCES, 1:HOURS_PER_YEAR] >= 0)  # dispatch from new capacity (MW)
-@variable(model, Xc_Cmax[ENERGY_SOURCES]                >= 0)  # new capacity to build (MW)
+@variable(model, Xc_Cmax[ENERGY_SOURCES]                >= 0)  # new generation capacity to build (MW)
+
+# Battery storage variables
+@variable(model, Xbat_MW                    >= 0)  # new battery power capacity (MW)
+@variable(model, P_dis[1:HOURS_PER_YEAR]    >= 0)  # battery discharge power (MW)
+@variable(model, P_chg[1:HOURS_PER_YEAR]    >= 0)  # battery charge power (MW)
+@variable(model, E_stor[1:HOURS_PER_YEAR]   >= 0)  # battery state of charge (MWh)
+
+# ── Generation constraints ─────────────────────────────────────────────────────
 
 # Capacity factor limits on existing and new generation
 @constraint(model, cap_existing[i in ENERGY_SOURCES, t=1:HOURS_PER_YEAR],
@@ -95,10 +112,6 @@ set_silent(model)
 
 @constraint(model, cap_new[i in ENERGY_SOURCES, t=1:HOURS_PER_YEAR],
     Pc_C[i,t] <= Xc_Cmax[i] * CF_df[t, Symbol(i)])
-
-# Demand balance at every hour
-@constraint(model, demand_balance[t=1:HOURS_PER_YEAR],
-    sum(Pg_E[i,t] + Pc_C[i,t] for i in ENERGY_SOURCES) == demand_df[t, :Load_MW])
 
 # Aggregate annual CO₂ emissions cap
 @constraint(model, emissions_limit,
@@ -114,11 +127,36 @@ set_silent(model)
     (Pg_E[i,t] + Pc_C[i,t]) - (Pg_E[i,t-1] + Pc_C[i,t-1]) >=
     -(existing_cap[i] + Xc_Cmax[i]) * ramp_rate[i])
 
-# Objective: minimize capital cost + 20-year operating cost
+# ── Battery storage constraints ────────────────────────────────────────────────
+
+# Discharge and charge each bounded by power capacity (availability = 1 every hour)
+@constraint(model, bat_dis_lim[t=1:HOURS_PER_YEAR],   P_dis[t] <= Xbat_MW)
+@constraint(model, bat_chg_lim[t=1:HOURS_PER_YEAR],   P_chg[t] <= Xbat_MW)
+
+# State of charge bounded by energy capacity (BAT_DURATION × power capacity)
+@constraint(model, bat_soc_lim[t=1:HOURS_PER_YEAR],
+    E_stor[t] <= BAT_DURATION * Xbat_MW)
+
+# Cyclic SOC energy balance: losses occur on both charge and discharge sides.
+# At t=1 the previous SOC wraps to E_stor[HOURS_PER_YEAR] (end-of-year = start-of-year).
+@constraint(model, bat_soc_balance[t=1:HOURS_PER_YEAR],
+    E_stor[t] == (t > 1 ? E_stor[t-1] : E_stor[HOURS_PER_YEAR]) +
+                 BAT_EFF_CHARGE * P_chg[t] - (1 / BAT_EFF_DISCHARGE) * P_dis[t])
+
+# Maximum buildout cap
+@constraint(model, bat_max_cap, Xbat_MW <= BAT_MAX_MW)
+
+# ── Demand balance (generation + net battery discharge must equal load) ─────────
+@constraint(model, demand_balance[t=1:HOURS_PER_YEAR],
+    sum(Pg_E[i,t] + Pc_C[i,t] for i in ENERGY_SOURCES) +
+    P_dis[t] - P_chg[t] == demand_df[t, :Load_MW])
+
+# ── Objective: minimize capital cost + 20-year operating cost ─────────────────
 # The 20-year factor accounts for load growth 2024–2050 modeled as a single snapshot;
 # linear interpolation over the planning horizon yields ~20 equivalent full-demand years.
 @objective(model, Min,
     sum(inv_cost[i] * Xc_Cmax[i] for i in ENERGY_SOURCES) +
+    BAT_CAPEX_MW * Xbat_MW +
     OPEX_YEARS * sum(marginal_cost[i] * (Pg_E[i,t] + Pc_C[i,t])
                      for i in ENERGY_SOURCES, t in 1:HOURS_PER_YEAR))
 
@@ -130,8 +168,10 @@ if termination_status(model) == MOI.OPTIMAL
     println("\nOptimal new capacity additions (MW):")
     for i in ENERGY_SOURCES
         cap = round(value(Xc_Cmax[i]), digits=1)
-        cap > 0 && println("  $(rpad(i, 20)) $(cap) MW")
+        cap > 0 && println("  $(rpad(i, 22)) $(cap) MW")
     end
+    bat_cap = round(value(Xbat_MW), digits=1)
+    println("  $(rpad("Battery (4-hr)", 22)) $(bat_cap) MW  ($(bat_cap * BAT_DURATION) MWh)")
 else
     println("Solver did not find an optimal solution. Status: ", termination_status(model))
 end
