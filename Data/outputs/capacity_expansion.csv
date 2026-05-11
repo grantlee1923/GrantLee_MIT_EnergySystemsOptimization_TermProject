@@ -1,0 +1,10 @@
+technology,new_capacity_mw,new_capacity_mwh
+Coal,0.0,
+Nuclear,6244.3,
+NGCC,0.0,
+NGCT,0.0,
+NGCC with CCS,13032.8,
+Hydro,0.0,
+Onshore Wind,40067.5,
+Solar,41068.8,
+Battery (4-hr),20000.0,80000.0
