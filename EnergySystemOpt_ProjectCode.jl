@@ -75,6 +75,7 @@ ramp_rate = Dict(
     "Hydro"         => 0.50,
     "Onshore Wind"  => 1.00,
     "Solar"         => 1.00,
+    "Battery"       => 1.00,
 )
 
 # Aggregate annual emissions cap: 10% of Ontario's 2022 baseline
@@ -145,6 +146,12 @@ set_silent(model)
 
 # Maximum buildout cap
 @constraint(model, bat_max_cap, Xbat_MW <= BAT_MAX_MW)
+
+# Ramp-rate constraints on net battery output (discharge − charge)
+@constraint(model, bat_ramp_up[t=2:HOURS_PER_YEAR],
+    (P_dis[t] - P_chg[t]) - (P_dis[t-1] - P_chg[t-1]) <=  ramp_rate["Battery"] * Xbat_MW)
+@constraint(model, bat_ramp_down[t=2:HOURS_PER_YEAR],
+    (P_dis[t] - P_chg[t]) - (P_dis[t-1] - P_chg[t-1]) >= -ramp_rate["Battery"] * Xbat_MW)
 
 # ── Demand balance (generation + net battery discharge must equal load) ─────────
 @constraint(model, demand_balance[t=1:HOURS_PER_YEAR],
