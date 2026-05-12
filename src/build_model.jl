@@ -3,7 +3,7 @@ using JuMP, Gurobi, HiGHS
 model = Model(Gurobi.Optimizer)
 set_silent(model)
 
-# ── Variables ──────────────────────────────────────────────────────────────────
+# Variables
 @variable(model, Pg_E[energy_sources, 1:HOURS_PER_YEAR] >= 0)  # dispatch from existing capacity (MW)
 @variable(model, Pc_C[energy_sources, 1:HOURS_PER_YEAR] >= 0)  # dispatch from new capacity (MW)
 @variable(model, Xc_Cmax[energy_sources]                >= 0)  # new generation capacity to build (MW)
@@ -15,7 +15,7 @@ set_silent(model)
 @variable(model, u_bat[1:HOURS_PER_YEAR], Bin)   # 1 = discharge mode, 0 = charge/idle mode
 @variable(model, NSE[1:HOURS_PER_YEAR]    >= 0)  # non-served energy (MW)
 
-# ── Generation constraints ─────────────────────────────────────────────────────
+# Generation constraints
 @constraint(model, cap_existing[i in energy_sources, t=1:HOURS_PER_YEAR],
     Pg_E[i,t] <= existing_cap[i] * CF_df[t, Symbol(i)])
 
@@ -34,7 +34,7 @@ set_silent(model)
     (Pg_E[i,t] + Pc_C[i,t]) - (Pg_E[i,t-1] + Pc_C[i,t-1]) >=
     -(existing_cap[i] + Xc_Cmax[i]) * ramp_rate[i])
 
-# ── Battery storage constraints ────────────────────────────────────────────────
+# Battery storage constraints
 @constraint(model, bat_dis_lim[t=1:HOURS_PER_YEAR],   P_dis[t] <= Xbat_MW)
 @constraint(model, bat_chg_lim[t=1:HOURS_PER_YEAR],   P_chg[t] <= Xbat_MW)
 
@@ -59,12 +59,12 @@ set_silent(model)
 @constraint(model, bat_ramp_down[t=2:HOURS_PER_YEAR],
     (P_dis[t] - P_chg[t]) - (P_dis[t-1] - P_chg[t-1]) >= -ramp_rate["Battery"] * Xbat_MW)
 
-# ── Demand balance ─────────────────────────────────────────────────────────────
+# Demand balance
 @constraint(model, demand_balance[t=1:HOURS_PER_YEAR],
     sum(Pg_E[i,t] + Pc_C[i,t] for i in energy_sources) +
     P_dis[t] - P_chg[t] + NSE[t] == demand_df[t, :Load_MW])
 
-# ── Objective ──────────────────────────────────────────────────────────────────
+# Objective
 # Minimize capital cost + 20-year operating cost.
 # The 20-year factor accounts for load growth 2024–2050 modeled as a single snapshot;
 # linear interpolation over the planning horizon yields ~20 equivalent full-demand years.
@@ -75,7 +75,7 @@ set_silent(model)
                      for i in energy_sources, t in 1:HOURS_PER_YEAR) +
     opex_years * VOLL * sum(NSE[t] for t in 1:HOURS_PER_YEAR))
 
-# ── Solve ──────────────────────────────────────────────────────────────────────
+# Solve
 optimize!(model)
 
 if termination_status(model) == MOI.OPTIMAL
