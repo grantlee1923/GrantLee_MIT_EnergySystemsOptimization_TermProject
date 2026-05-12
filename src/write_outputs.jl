@@ -2,7 +2,7 @@ using DataFrames, CSV
 
 mkpath("Data/outputs")
 
-# ── Capacity expansion results ─────────────────────────────────────────────────
+# Capacity expansion results
 cap_df = DataFrame(
     technology       = vcat(energy_sources, ["Battery ($(bat_duration)-hr)"]),
     new_capacity_mw  = vcat(
@@ -18,7 +18,7 @@ cap_df = DataFrame(
 CSV.write("Data/outputs/capacity_expansion.csv", cap_df)
 println("  Wrote Data/outputs/capacity_expansion.csv")
 
-# ── Hourly dispatch ────────────────────────────────────────────────────────────
+# Hourly dispatch
 # Column names replace spaces with underscores for CSV compatibility
 col_name(s) = replace(s, " " => "_")
 
